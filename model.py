@@ -3,6 +3,7 @@ import torch.nn as nn
 
 class Model(nn.Module):
     def __init__(self):
+        super(Model, self).__init__()
         self.model = nn.Sequential(
             nn.Conv2d(1, 64, 3, 1, 1),  # [64, 128, 128]
             nn.BatchNorm2d(64),

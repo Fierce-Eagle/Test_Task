@@ -24,8 +24,8 @@ class CustomDataset:
 
         self.transform = A.Compose([
             A.HorizontalFlip(p=0.2),
-            A.Rotate(p=0.6),
-            A.RandomBrightness(),
+            A.Rotate(p=0.4),
+            A.RandomBrightnessContrast(),
             A.RandomShadow(),
             A.Blur(blur_limit=3, p=0.1)
         ])
@@ -37,8 +37,6 @@ class CustomDataset:
         :return:
         """
         if not self.is_created_early:
-            # tmp_data = []
-            
             df = self.data.reset_index()
 
             for name_index, row in df.iterrows():
@@ -49,9 +47,8 @@ class CustomDataset:
                     new_image = Image.open(self.image_dir + filename)
                     self.transform(image=np.asarray(new_image))  # конвертация, чтобы не было ошибок
                     new_image.save(self.image_dir + new_image_name)
-                    self.data.append(pd.DataFrame({"filename": new_image_name, "label": label}, index=[0]))
+                    self.data = pd.concat([self.data, pd.DataFrame({"filename": new_image_name, "label": label}, index=[0])])
             
-            # self.data += tmp_data
 
     def split_data(self):
         labels = self.data['label']
