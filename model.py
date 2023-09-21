@@ -3,6 +3,9 @@ import torch.nn as nn
 
 class Model(nn.Module):
     def __init__(self):
+        """
+        Модель сверточной нейронной сети на 5 сверток.
+        """
         super(Model, self).__init__()
         self.model = nn.Sequential(
             nn.Conv2d(1, 64, 3, 1, 1),  # [64, 128, 128]
@@ -40,7 +43,7 @@ class Model(nn.Module):
             nn.ReLU(),
             nn.Dropout(),
         )
-
+        # Полносвязная сеть для выравнивания данных
         self.fc = nn.Sequential(
             nn.Flatten(),
             nn.Linear(512 * 4 * 4, 1024),
