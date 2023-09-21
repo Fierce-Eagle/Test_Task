@@ -5,6 +5,7 @@ from PIL import Image
 import pandas as pd
 from sklearn.model_selection import train_test_split
 import albumentations as A
+import numpy as np
 
 
 class DataLoad:
@@ -60,7 +61,18 @@ class CustomDataset(Dataset):
         image = Image.open(img_path)
         label = self.data["label"][idx]
         if self.transform:
-            image = self.transform(image)
+            img = self.transform(image=np.asarray(image))
+            print(img)
+            """
+            ПРОБЛЕМА: для аугментаций нужно передавать np.array,
+            соответсвенно, возращается он же.
+            В аугментациях раньше была функция ToTensor, которая решает эту проблему,
+            однако сейчас ее выпилили. 
+            Есть вариант вытаскивать 2 элемент из словаря, но сегодня уже не успеваю.
+            
+            # Есть идеи?
+            """
+            image = Image.fromarray(img)  # выдает ошибки
         return image, label
 
 
