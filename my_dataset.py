@@ -1,11 +1,13 @@
 import os
 import zipfile
+import torch
 from torch.utils.data import Dataset
 from PIL import Image
 import pandas as pd
 from sklearn.model_selection import train_test_split
-import albumentations as A
 import numpy as np
+import albumentations as A
+from torchvision.utils import save_image
 
 
 class DataLoad:
@@ -31,7 +33,7 @@ class DataLoad:
 
 
 class CustomDataset(Dataset):
-    def __init__(self, data, img_dir, transform=None):
+    def __init__(self, data, img_dir, transform=None, save_image_path=None):
         """
         Класс обработки датасета
 
@@ -42,6 +44,7 @@ class CustomDataset(Dataset):
         self.img_dir = img_dir
         self.data = data
         self.transform = transform
+        self.save_image_path = save_image_path
 
     def __len__(self):
         """
@@ -57,22 +60,22 @@ class CustomDataset(Dataset):
         :param idx: позиция картинки в датасете
         :return:
         """
+        assert self.save_image_path is not None
+
         img_path = self.img_dir + self.data["filename"][idx]
         image = Image.open(img_path)
         label = self.data["label"][idx]
         if self.transform:
-            img = self.transform(image=np.asarray(image))
-            print(img)
-            """
-            ПРОБЛЕМА: для аугментаций нужно передавать np.array,
-            соответсвенно, возращается он же.
-            В аугментациях раньше была функция ToTensor, которая решает эту проблему,
-            однако сейчас ее выпилили. 
-            Есть вариант вытаскивать 2 элемент из словаря, но сегодня уже не успеваю.
-            
-            # Есть идеи?
-            """
-            image = Image.fromarray(img)  # выдает ошибки
+            image_dict = self.transform(image=np.array(image))
+
+            # раз конвертации в тензор нет в версии из google colab, значит возьмем напрямую из оффициального репозитория
+            # https://github.com/albumentations-team/albumentations/blob/master/albumentations/pytorch/transforms.py
+            img = image_dict["image"]
+            image = torch.from_numpy(
+                np.moveaxis(img / (255.0 if img.dtype == np.uint8 else 1), -1, 0).astype(np.float32))
+            new_image_name = label + "." + self.data["filename"][idx].split(".")[1] + "_aug.jpg"
+            save_image(image, self.save_image_path + "train/" + new_image_name)
+
         return image, label
 
 
@@ -90,7 +93,7 @@ train_augmentation = A.Compose([
 
     # нормализация
     A.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
-], p=0.2)
+], p=0.0001)
 
 test_augmentation = A.Compose([
     # изменение размеров картинки
@@ -103,5 +106,6 @@ test_augmentation = A.Compose([
     A.Blur(blur_limit=3, p=0.1),
 
     # нормализация
+
     A.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
-], p=0.15)
+], p=0.0001)
