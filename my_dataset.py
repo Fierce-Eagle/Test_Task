@@ -32,23 +32,23 @@ class DataLoad:
 
 
 class CustomDataset(Dataset):
-    def __init__(self, data, img_dir, transform=None):
+    def __init__(self, data_frame, img_dir, transform=None):
         """
         Класс обработки датасета
 
-        :param data: датасет вида pd.DataFrame({filename: , label: })
+        :param data_frame: датасет вида pd.DataFrame({filename: , label: })
         :param img_dir: путь до директории с изображениями
         :param transform: аугментация
         """
         self.img_dir = img_dir
-        self.data = data
+        self.data_frame = data_frame
         self.transform = transform
     def __len__(self):
         """
         Число всех картинок в датасете
         :return:
         """
-        return len(self.data["filename"])
+        return len(self.data_frame["filename"])
 
     def __getitem__(self, idx):
         """
@@ -57,13 +57,18 @@ class CustomDataset(Dataset):
         :param idx: позиция картинки в датасете
         :return:
         """
-        img_path = self.img_dir + self.data["filename"][idx]
+        img_path = os.path.join(self.img_dir, self.data_frame["filename"][idx])
         image = Image.open(img_path)
-        label = self.data["label"][idx]
+        if self.data_frame["label"][idx] == "cat":
+            label = 0
+        else:
+            label = 1
+        
         if self.transform:
             image_dict = self.transform(image=np.array(image))
             image = torch.Tensor(image_dict['image'])
-        return image, label
+            image = np.transpose(image, (2, 0, 1))
+        return image, torch.Tensor([label])
 
 
 # RandomCrop решил не делать

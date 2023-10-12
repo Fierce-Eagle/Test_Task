@@ -1,34 +1,50 @@
 import torch
 import torch.optim as optim
 import torch.nn as nn
+import numpy as np
 
 
-def train_model(train, net, epochs=10, device=None, lr=1e-3):
+def train_model(loader_train, net, epochs=10, device=None, lr=1e-3):
     assert device is not None, "device must be cpu or cuda"
+    сrossEntropy = nn.CrossEntropyLoss()
     optimizer = optim.AdamW(net.parameters(), lr)
     loss_history = []
-    y_predict_history = []
+    acc_history = []
+    y_pred_history = []
     model = net.to(device)
 
-    model.train()
+    #model.train()
 
     for epoch in range(epochs):
-        for image, label in train:
-            x = image.to(device=device, dtype=torch.float32)
-            y = label.to(device=device,  dtype=torch.long)
+        model.train()
+        for t, (x, y) in enumerate(loader_train):
+            x = x.to(device=device, dtype=torch.float32)
+            y = y.to(device=device, dtype=torch.int64)
+            y = torch.flatten(y)
+            scores = model(x)
+            loss = сrossEntropy(scores, y)
+
             optimizer.zero_grad()
-            y_predict = model(x)
-            loss = nn.CrossEntropyLoss(y_predict, y)
             loss.backward()
             optimizer.step()
-            loss_history.append(loss.item())
-            y_predict_history.append(y_predict)
+            y_pred_history.append(scores)
+            
+            if t % 10 == 0:
+                pred = torch.argmax(scores, dim=1)
+                correct = pred.eq(y)
+                acc = torch.mean(correct.float())
+                
+                print('Iteration %d, loss = %.4f acc = %.4f' % (t, loss.item(), acc))
+                
+                loss_history.append(loss)
+                acc_history.append(acc)
+            
+        print()
 
-    return loss_history, y_predict_history
+    return loss_history, acc_history, y_pred_history
 
 
 def test_model(test, net, device=None, lr=1e-3):
-    assert device is not None, "device must be cpu or cuda"
     net.eval()
     correct = 0
     total = 0
